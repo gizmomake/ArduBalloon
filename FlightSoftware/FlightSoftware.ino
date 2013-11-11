@@ -1,69 +1,55 @@
-#include <AltSoftSerial.h>
 
 /*
 Grandma Ben's Old Fashioned Homestyle Arduino Weather Balloon! 
-- Obtain Data from sensors like Temp and Humidity, Internal Temp, accelerometer, and GPS
+- Obtain Data from sensors like Temp and Humidity, Internal Temp, and GPS
 - Transmit via text
 - Log data
 */
-#include <SD.h>
-#include <math.h>
-//#include <SoftwareSerial.h>
+#include <SoftwareSerial.h>
 #include <String.h>
-#include <sstream>
 #include <TinyGPS.h>
-#include "DHT.h"
 #include <Wire.h>
-#include "MMA7660.h"
+#include "DHT.h"
+
 
 // For Texting
-AltSoftSerial mySerial(7, 8);
-
+SoftwareSerial mySerial(7, 8);
 //For GPS
 TinyGPS gps;
-AltSoftSerial nss(2, 3);
-
-
+SoftwareSerial nss(2, 3);
 static void gpsdump(TinyGPS &gps);
-//static void SendTextMessage();
-
 static bool feedgps();
 static void print_float(float val, float invalid, int len, int prec);
 static void print_int(unsigned long val, unsigned long invalid, int len);
 static void print_date(TinyGPS &gps);
 static void print_str(const char *str, int len);
+int i = true;
 
-
-// accelerometer
-MMA7660 accelemeter;
 //For temp and humi sensor
 #define DHTPIN A0
 #define DHTTYPE DHT11   // DHT 11 
 DHT dht(DHTPIN, DHTTYPE);
 
-//For SD shield
-const int chipSelect = 10;
-// For looping the sms
-  int i= 1;
-
-
 void setup()
 {
-  Serial.begin(9600);
-  nss.begin(9600);
-mySerial.begin(19200);
-  ADMUX = 0xC8;
-  accelemeter.init();  
-  dht.begin();
+    Serial.begin(19200);
+    dht.begin();
+    
 
-  pinMode(10, OUTPUT);
-  
 
 }
 void loop()
 {
- 
   
+    // Reading temperature or humidity takes about 250 milliseconds!
+  float h = dht.readHumidity();
+  float nt = dht.readTemperature();
+  float t = nt * 9/5 + 32;
+  
+  if (i) {
+    Serial.begin(19200);
+    nss.begin(9600);
+      
   bool newdata = false;
   unsigned long start = millis();
   
@@ -72,104 +58,26 @@ void loop()
   {
     if (feedgps())
       newdata = true;
-  }
-  
-  gpsdump(gps);
-  
-    // Reading temperature or humidity takes about 250 milliseconds!
-  float h = dht.readHumidity();
-  float nt = dht.readTemperature();
-  float t = nt * 9/5 + 32;
-
-    String text = "";
-     text +=  " Internal Temp: ";
-    Serial.print(text);
-    Serial.print(GetTemp());
-    Serial.println(" ");
-    // check if returns are valid, if they are NaN (not a number) then something went wrong!
-  if (isnan(t) || isnan(h)) {
-    Serial.println("Failed to read from DHT");
-  } else {
-    Serial.print("Humidity: "); 
-    Serial.print(h);
-    Serial.print(" %\t");
-    Serial.print("Temperature: "); 
-    Serial.print(t);
-    Serial.println(" *F");
-    	int8_t x;
-	int8_t y;
-	int8_t z;
-	float ax,ay,az;
-	accelemeter.getXYZ(&x,&y,&z);	
-	accelemeter.getAcclemeter(&ax,&ay,&az);
-    Serial.print("ax = ");
-    Serial.println(ax);  
-    Serial.print("ay = ");
-    Serial.println(ay);
-    Serial.print("az = ");
-    Serial.println(az);
-    Serial.println(" ");
-    Serial.println("*************");
-    Serial.println(" ");
+  }   
     
+   nss.end();
+   Serial.end();
   }
-
-if(i == 10) {
-SendTextMessage();
-i=0;
-}  
-    i++;
   
- 
- 
-  
-    //wait 5 seconds
-   delay(5000);
-
-}
-
-// Get temp inside capsule
-double GetTemp(void)
-{
-  unsigned int wADC;
-  double t;
-  ADMUX = (_BV(REFS1) | _BV(REFS0) | _BV(MUX3));
-  ADCSRA |= _BV(ADEN);  // enable the ADC
+  if (!i) {
+    
+   Serial.begin(19200);
+   mySerial.begin(19200);
 
 
-  ADCSRA |= _BV(ADSC);  // Start the ADC
-  while (bit_is_set(ADCSRA,ADSC));
-  wADC = ADCW;
-  t = (wADC - 324.31 ) / 1.22;
-  t = t * 9/5 + 32;
-  // The returned temperature is in degrees F.
-  return (t);
-}
-///////////////////////////////////////////////////
-//////////////////   SEND TEXT   /////////////////
-/////////////////////////////////////////////////
 
-void SendTextMessage()
-{
-  
-  Serial.println("Remember to turn on the GPRS");
-  mySerial.print("AT+CMGF=1\r");
-  delay(100);
-  mySerial.println("AT + CMGS = \"+15163984586\"");//send sms message, be careful need to add a country code before the cellphone number
-  delay(100);
-  mySerial.println("hello");//the content of the message
-  delay(100);
-  mySerial.println((char)26);//the ASCII code of the ctrl+z is 26
-  delay(100);
-  mySerial.println();
-}
-
-static void gpsdump(TinyGPS &gps)
-{
   float flat, flon;
   unsigned long age, date, time, chars = 0;
   unsigned short sentences = 0, failed = 0;
-  static const float LONDON_LAT = 51.508131, LONDON_LON = -0.128002;
+  
+  ////////////////////////////
+  //Print GPS data to serial//
+  ////////////////////////////  
   
   print_int(gps.satellites(), TinyGPS::GPS_INVALID_SATELLITES, 5);
   print_int(gps.hdop(), TinyGPS::GPS_INVALID_HDOP, 5);
@@ -184,16 +92,102 @@ static void gpsdump(TinyGPS &gps)
   print_float(gps.f_course(), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
   print_float(gps.f_speed_kmph(), TinyGPS::GPS_INVALID_F_SPEED, 6, 2);
   print_str(gps.f_course() == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(gps.f_course()), 6);
-print_int(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0UL : (unsigned long)TinyGPS::distance_between(flat, flon, LONDON_LAT, LONDON_LON) / 1000, 0xFFFFFFFF, 9);
-print_float(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : TinyGPS::course_to(flat, flon, 51.508131, -0.128002), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
-  print_str(flat == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(TinyGPS::course_to(flat, flon, LONDON_LAT, LONDON_LON)), 6);
+ // print_int(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0UL : (unsigned long)TinyGPS::distance_between(flat, flon, LONDON_LAT, LONDON_LON) / 1000, 0xFFFFFFFF, 9);
+  print_float(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : TinyGPS::course_to(flat, flon, 51.508131, -0.128002), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
+ // print_str(flat == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(TinyGPS::course_to(flat, flon, LONDON_LAT, LONDON_LON)), 6);
 
   gps.stats(&chars, &sentences, &failed);
   print_int(chars, 0xFFFFFFFF, 6);
   print_int(sentences, 0xFFFFFFFF, 10);
   print_int(failed, 0xFFFFFFFF, 9);
   Serial.println();
+  
+  
+
+  
+  ///////////////
+  // Send text //
+  ///////////////
+ 
+  
+  mySerial.print("AT+CMGF=1\r");
+  delay(100);
+  mySerial.println("AT + CMGS = \"+15163984586\"");//send sms message, be careful need to add a country code before the cellphone number
+  delay(100);
+  
+
+  float val = flat;
+  float invalid = TinyGPS::GPS_INVALID_F_ANGLE;
+  int len = 9;
+  int prec = 5;
+  char sz[32];
+  if (val == invalid)
+  {
+    strcpy(sz, "*******");
+    sz[len] = 0;
+        if (len > 0) 
+          sz[len-1] = ' ';
+    for (int i=7; i<len; ++i)
+        sz[i] = ' ';
+    Serial.print(sz);
+  }
+  else
+  {
+    mySerial.print(val, prec);
+    int vi = abs((int)val);
+    int flen = prec + (val < 0.0 ? 2 : 1);
+    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
+    for (int i=flen; i<len; ++i)
+      mySerial.print(" , ");
+  }
+  
+  delay(100);
+  
+    float val1 = flon;
+  float invalid1 = TinyGPS::GPS_INVALID_F_ANGLE;
+  int len1 = 9;
+  int prec1 = 5;
+  char sz1[32];
+  if (val1 == invalid1)
+  {
+    strcpy(sz1, "*******");
+    sz1[len1] = 0;
+        if (len1 > 0) 
+          sz1[len1-1] = ' ';
+    for (int i=7; i<len1; ++i)
+        sz1[i] = ' ';
+    Serial.print(sz1);
+  }
+  else
+  {
+    mySerial.print(val1, prec1);
+    int vi = abs((int)val1);
+    int flen = prec1 + (val1 < 0.0 ? 2 : 1);
+    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
+    for (int i=flen; i<len; ++i)
+      Serial.print(" ");
+  }
+  delay(100);
+  
+  
+  
+  mySerial.println((char)26);//the ASCII code of the ctrl+z is 26
+  delay(100);
+  
+  mySerial.println();
+  
+  mySerial.end();
+  
+  Serial.end();
+  
+  }
+ 
+    i = !i;
+    //wait 5 seconds
+   delay(5000);
+
 }
+
 
 static void print_int(unsigned long val, unsigned long invalid, int len)
 {
@@ -234,6 +228,7 @@ static void print_float(float val, float invalid, int len, int prec)
       Serial.print(" ");
   }
   feedgps();
+  
 }
 
 static void print_date(TinyGPS &gps)
