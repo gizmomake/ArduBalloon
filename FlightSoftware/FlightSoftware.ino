@@ -75,9 +75,10 @@ void loop()
   unsigned long age, date, time, chars = 0;
   unsigned short sentences = 0, failed = 0;
   
-  ////////////////////////////
-  //Print GPS data to serial//
-  ////////////////////////////  
+  //////////////////////////////////////////
+  //     Print GPS data to serial        //
+  //    MUST BE REMOVED BEFORE FLIGHT   //
+  ///////////////////////////////////////  
   
   print_int(gps.satellites(), TinyGPS::GPS_INVALID_SATELLITES, 5);
   print_int(gps.hdop(), TinyGPS::GPS_INVALID_HDOP, 5);
@@ -116,6 +117,10 @@ void loop()
   delay(100);
   
 
+  /////////
+  // LAT //
+  /////////
+  
   float val = flat;
   float invalid = TinyGPS::GPS_INVALID_F_ANGLE;
   int len = 9;
@@ -143,7 +148,11 @@ void loop()
   
   delay(100);
   
-    float val1 = flon;
+  /////////
+  // LON //
+  /////////
+  
+  float val1 = flon;
   float invalid1 = TinyGPS::GPS_INVALID_F_ANGLE;
   int len1 = 9;
   int prec1 = 5;
@@ -165,11 +174,39 @@ void loop()
     int flen = prec1 + (val1 < 0.0 ? 2 : 1);
     flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
     for (int i=flen; i<len; ++i)
-      Serial.print(" ");
+      mySerial.print(" ALT: ");
   }
   delay(100);
+  mySerial.println(" ALT: ");
+  /////////
+  // ALT //
+  /////////
   
-  
+  float val2 = gps.f_altitude();
+  float invalid2 = TinyGPS::GPS_INVALID_F_ALTITUDE;
+  int len2 = 8;
+  int prec2 = 2;
+  char sz2[32];
+  if (val2 == invalid2)
+  {
+    strcpy(sz2, "*******");
+    sz2[len2] = 0;
+        if (len2 > 0) 
+          sz2[len2-1] = ' ';
+    for (int i=7; i<len2; ++i)
+        sz2[i] = ' ';
+    Serial.print(sz2);
+  }
+  else
+  {
+    mySerial.print(val2, prec2);
+    int vi = abs((int)val2);
+    int flen = prec2 + (val2 < 0.0 ? 2 : 1);
+    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
+    for (int i=flen; i<len2; ++i)
+      mySerial.print(" ");
+  }
+  delay(100);
   
   mySerial.println((char)26);//the ASCII code of the ctrl+z is 26
   delay(100);
