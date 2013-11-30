@@ -1,22 +1,27 @@
 
 /*
-Grandma Ben's Old Fashioned Homestyle Arduino Weather Balloon! 
-- Obtain Data from sensors like Temp and Humidity, Internal Temp, and GPS
-- Transmit via text
-- Log data
-*/
+   _____ _____   ____  _    _ _   _ _____    _______ ______  _____ _______ 
+  / ____|  __ \ / __ \| |  | | \ | |  __ \  |__   __|  ____|/ ____|__   __|
+ | |  __| |__) | |  | | |  | |  \| | |  | |    | |  | |__  | (___    | |   
+ | | |_ |  _  /| |  | | |  | | . ` | |  | |    | |  |  __|  \___ \   | |   
+ | |__| | | \ \| |__| | |__| | |\  | |__| |    | |  | |____ ____) |  | |   
+  \_____|_|  \_\\____/ \____/|_| \_|_____/     |_|  |______|_____/   |_|   
+                                                                         
+                           DO NOT FLY  
+                                                                           
+                                                                           
+                                                                           */
 #include <SoftwareSerial.h>
 #include <String.h>
 #include <TinyGPS.h>
 #include <Wire.h>
-#include "DHT.h"
 
 
 // For Texting
 SoftwareSerial mySerial(7, 8);
 //For GPS
 TinyGPS gps;
-SoftwareSerial nss(2, 3);
+SoftwareSerial nss(4, 5);
 static void gpsdump(TinyGPS &gps);
 static bool feedgps();
 static void print_float(float val, float invalid, int len, int prec);
@@ -25,15 +30,10 @@ static void print_date(TinyGPS &gps);
 static void print_str(const char *str, int len);
 int i = true;
 
-//For temp and humi sensor
-#define DHTPIN A0
-#define DHTTYPE DHT11   // DHT 11 
-DHT dht(DHTPIN, DHTTYPE);
 
 void setup()
 {
     Serial.begin(19200);
-    dht.begin();
     
 
 
@@ -41,10 +41,6 @@ void setup()
 void loop()
 {
   
-    // Reading temperature or humidity takes about 250 milliseconds!
-  float h = dht.readHumidity();
-  float nt = dht.readTemperature();
-  float t = nt * 9/5 + 32;
   
   if (i) {
     Serial.begin(19200);
