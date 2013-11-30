@@ -15,7 +15,6 @@
 #include <String.h>
 #include <TinyGPS.h>
 #include <Wire.h>
-#include "DHT.h"
 
 
 // For Texting
@@ -31,15 +30,10 @@ static void print_date(TinyGPS &gps);
 static void print_str(const char *str, int len);
 int i = true;
 
-//For temp and humi sensor
-#define DHTPIN A0
-#define DHTTYPE DHT11   // DHT 11 
-DHT dht(DHTPIN, DHTTYPE);
 
 void setup()
 {
     Serial.begin(19200);
-    dht.begin();
     
 
 
@@ -47,10 +41,6 @@ void setup()
 void loop()
 {
   
-    // Reading temperature or humidity takes about 250 milliseconds!
-  float h = dht.readHumidity();
-  float nt = dht.readTemperature();
-  float t = nt * 9/5 + 32;
   
   if (i) {
     Serial.begin(19200);
