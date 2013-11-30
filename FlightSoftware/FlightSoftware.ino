@@ -21,7 +21,7 @@
 SoftwareSerial mySerial(7, 8);
 //For GPS
 TinyGPS gps;
-SoftwareSerial nss(4, 5);
+SoftwareSerial nss(3, 4);
 static void gpsdump(TinyGPS &gps);
 static bool feedgps();
 static void print_float(float val, float invalid, int len, int prec);
