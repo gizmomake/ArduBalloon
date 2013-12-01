@@ -216,7 +216,7 @@ void loop()
  
     i = !i;
     //wait 3 minutes
-   delay(180000);
+   delay(90000);
 
 }
 
